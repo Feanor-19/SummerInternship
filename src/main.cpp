@@ -1,4 +1,4 @@
-#include "sss_nss.h"
+#include "sss_nss_idmap.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <grp.h>
 #include <string.h>
+#include <errno.h>
 
 //! @brief Prints current user groups into stdout.
 //! @return 0 if no errors occured, not 0 otherwise.

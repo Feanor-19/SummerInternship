@@ -29,14 +29,13 @@ SRC = src
 BIN = bin
 INC = inc
 
-# This name must be full name, like 'libtree.so', not just 'tree'! 
-LIB_NAMES = libsss_nss_idmap.so.0.5.0
+LIB_NAMES = sss_nss_idmap 
 
 SOURCES  = $(wildcard $(SRC)/*.cpp)
 OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:.cpp=.o))
-OUT		 = $(BIN)/prog
+OUT      = $(BIN)/prog
 
-LIB_SUBST = -l:$(lib_name)
+LIB_SUBST = -l$(lib_name) 
 LIBS      = $(foreach lib_name,$(LIB_NAMES),$(LIB_SUBST))
 
 $(OUT) : $(OBJFILES)
