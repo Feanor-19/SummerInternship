@@ -8,6 +8,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <stdint.h>
+
 //! @brief Prints current user groups into stdout.
 //! @return 0 if no errors occured, not 0 otherwise.
 int print_groups();
@@ -26,18 +28,17 @@ int main()
            "Username: %s\n", 
            getuid(), getlogin());
 
-    if ( (err = print_groups()) != 0)
-    {
-        printf("Some non-crtical error occured during printing current user groups:\n");
-        perror(strerror(err));
-    }
-
     if ( (err = print_sid()) != 0)
     {
         printf("Some non-crtical error occured during printing current user SID:\n");
         perror(strerror(err));
     }
     
+    if ( (err = print_groups()) != 0)
+    {
+        printf("Some non-crtical error occured during printing current user groups:\n");
+        perror(strerror(err));
+    }
 
     return 0;
 }
@@ -66,7 +67,7 @@ int print_groups()
     for (int ind  = 0; ind < n_groups; ind++)
     {
         putchar('\n');
-        group *gr = NULL;
+        struct group *gr = NULL;
         if ( (gr = getgrgid(groups[ind])) )
         {
             printf("Group name: %s\n"
@@ -84,7 +85,7 @@ CleanUp:
 int print_sid()
 {
     char *sid = NULL;
-    sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
+    enum sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
     int err = sss_nss_getsidbyuid(getuid(), &sid, &type);
 
     if (err)

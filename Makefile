@@ -1,4 +1,4 @@
-CC=g++
+CC=gcc
 
 ifdef SAN
 SAN = -fsanitize=alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr,leak,address
@@ -6,6 +6,7 @@ else
 SAN =
 endif
 
+# some of this flags are only for g++, not for gcc
 CFLAGS  =  -D _DEBUG -ggdb3 -std=c++17 -Wall -Wextra -Weffc++                   \
       -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations         \
       -Wcast-align -Wcast-qual -Wchar-subscripts -Wconditionally-supported         \
@@ -22,26 +23,29 @@ CFLAGS  =  -D _DEBUG -ggdb3 -std=c++17 -Wall -Wextra -Weffc++                   
       -fstrict-overflow -flto-odr-type-merging -fno-omit-frame-pointer          \
       -Wstack-usage=8192 -pie -fPIE -Werror=vla $(SAN)
 
-CFLAGS = 
+CFLAGS = -Wall -Wextra
 
 OBJ = obj
 SRC = src
 BIN = bin
 INC = inc
 
+C_EXT   = .c
+OBJ_EXT = .o
+
 LIB_NAMES = sss_nss_idmap 
 
-SOURCES  = $(wildcard $(SRC)/*.cpp)
-OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:.cpp=.o))
+SOURCES  = $(wildcard $(SRC)/*$(C_EXT))
+OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:$(C_EXT)=$(OBJ_EXT)))
 OUT      = $(BIN)/prog
 
 LIB_SUBST = -l$(lib_name) 
 LIBS      = $(foreach lib_name,$(LIB_NAMES),$(LIB_SUBST))
 
 $(OUT) : $(OBJFILES)
-	$(CC) $(LIBS) -o $@ $(CFLAGS) $^ -I $(INC) $(LIBS)
+	$(CC) -o $@ $(CFLAGS) $^ -I $(INC) $(LIBS)
 
-$(OBJ)/%.o : $(SRC)/%.cpp
+$(OBJ)/%$(OBJ_EXT) : $(SRC)/%$(C_EXT)
 	$(CC) -c $(CFLAGS) -o $@ $< -I $(INC)
 
 .PHONY: run
