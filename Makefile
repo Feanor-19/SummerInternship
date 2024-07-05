@@ -1,4 +1,4 @@
-CC=gcc
+CC=g++
 
 ifdef SAN
 SAN = -fsanitize=alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr,leak,address
@@ -23,14 +23,12 @@ CFLAGS  =  -D _DEBUG -ggdb3 -std=c++17 -Wall -Wextra -Weffc++                   
       -fstrict-overflow -flto-odr-type-merging -fno-omit-frame-pointer          \
       -Wstack-usage=8192 -pie -fPIE -Werror=vla $(SAN)
 
-CFLAGS = -Wall -Wextra
-
 OBJ = obj
 SRC = src
 BIN = bin
 INC = inc
 
-C_EXT   = .c
+C_EXT   = .cpp
 OBJ_EXT = .o
 
 LIB_NAMES = sss_nss_idmap 

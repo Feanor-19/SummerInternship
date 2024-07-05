@@ -1,4 +1,6 @@
+extern "C"{
 #include "sss_nss_idmap.h"
+}
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,13 +35,13 @@ int main()
         printf("Some non-crtical error occured during printing current user SID:\n");
         perror(strerror(err));
     }
-    
+
     if ( (err = print_groups()) != 0)
     {
         printf("Some non-crtical error occured during printing current user groups:\n");
         perror(strerror(err));
     }
-
+    
     return 0;
 }
 
