@@ -40,11 +40,17 @@ OUT      = $(BIN)/prog
 LIB_SUBST = -l$(lib_name) 
 LIBS      = $(foreach lib_name,$(LIB_NAMES),$(LIB_SUBST))
 
-$(OUT) : $(OBJFILES)
+$(OUT) : $(OBJFILES) | $(BIN)
 	$(CC) -o $@ $(CFLAGS) $^ -I $(INC) $(LIBS)
 
-$(OBJ)/%$(OBJ_EXT) : $(SRC)/%$(C_EXT)
+$(OBJ)/%$(OBJ_EXT) : $(SRC)/%$(C_EXT) | $(OBJ)
 	$(CC) -c $(CFLAGS) -o $@ $< -I $(INC)
+
+$(OBJ) :
+	mkdir -p $@
+
+$(BIN) :
+	mkdir -p $@
 
 .PHONY: run
 run:
