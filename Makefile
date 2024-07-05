@@ -22,8 +22,6 @@ CFLAGS  =  -D _DEBUG -ggdb3 -std=c++17 -Wall -Wextra -Weffc++                   
       -fstrict-overflow -flto-odr-type-merging -fno-omit-frame-pointer          \
       -Wstack-usage=8192 -pie -fPIE -Werror=vla $(SAN)
 
-CFLAGS = 
-
 OBJ = obj
 SRC = src
 BIN = bin
