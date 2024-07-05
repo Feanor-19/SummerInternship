@@ -60,6 +60,12 @@ run:
 clean:
 	rm -f $(OBJFILES) $(OUT)
 
-.PHONY: copy_to_TEST
-copy_to_TEST:
-	sudo cp bin/prog /usr/bin/TEST/prog
+# when you login as another user who can't sudo, he needs the prog to be in accessible place
+TEST_DIR = /usr/bin/TEST/
+
+.PHONY: copy_to_TEST 
+copy_to_TEST: | $(TEST_DIR)
+	sudo cp $(OUT) $(TEST_DIR)prog
+
+$(TEST_DIR):
+	sudo mkdir -p $@
