@@ -6,7 +6,6 @@ extern "C"
 }
 
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <grp.h>
 #include <string.h>
@@ -14,9 +13,9 @@ extern "C"
 #include <stdlib.h>
 
 
-int print_groups()
+bool print_groups(int *error_code_p)
 {
-    int err = 0;
+    bool res = true;
     
     printf("Groups:\n");
     
@@ -24,14 +23,15 @@ int print_groups()
     if (n_groups == 0)
     {
         printf("No groups found.\n");
-        return 0;
+        return true;
     }
 
     gid_t *groups = (gid_t*) calloc( (size_t) n_groups, sizeof(gid_t) );
     if (!getgroups(n_groups, groups))
     {
         printf("Can't get groups' ids.\n");
-        err = errno;
+        *error_code_p = errno;
+        res = false;
         goto CleanUp;
     }
 
@@ -50,22 +50,61 @@ int print_groups()
 CleanUp:
     free(groups);
 
-    return err;
+    return res;
 }
 
-int print_sid()
+bool print_sid(int *error_code_p)
 {
-    char *sid = NULL;
-    enum sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
-    int err = sss_nss_getsidbyuid(getuid(), &sid, &type);
+    char *SID = nullptr;
+    bool res = false;
 
-    if (err)
+    if ( !(res = uid_to_sid(getuid(), &SID, error_code_p) ) )
         goto CleanUp;
 
-    printf("SID: %s\n", sid);
+    printf("SID: %s\n", SID);
 
 CleanUp:
-    free(sid);
+    free(SID);
 
-    return err;
+    return res;
+}
+
+bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p, char **error_text_p)
+{
+    enum sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
+    int err = sss_nss_getsidbyuid(UID, SID_p, &type);
+
+    if (err)
+    {
+        if (error_code_p)
+            *error_code_p = err;
+        
+        if (error_text_p)
+            *error_text_p = strerror(err);
+
+        return false;
+    }
+
+    return true;
+}
+
+bool is_domain_uid(uid_t UID, int* error_code_p, char **error_text_p)
+{
+    char *SID = nullptr;
+    char *error_text_old_val = nullptr;
+    
+    if (error_text_p)
+        error_text_old_val = *error_text_p;
+
+    bool res = uid_to_sid(UID, &SID, error_code_p, error_text_p);
+    if (error_code_p && (res == false) && *error_code_p == ENOENT)
+    {
+        *error_code_p = 0;
+        if (error_text_p)
+            *error_text_p = error_text_old_val;
+    }
+
+    free(SID);
+
+    return res;
 }
