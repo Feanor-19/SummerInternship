@@ -7,7 +7,7 @@ SAN =
 endif
 
 # some of this flags are only for g++, not for gcc
-CFLAGS  =  -D _DEBUG -ggdb3 -std=c++17 -Wall -Wextra -Weffc++                   \
+CFLAGS  =  -ggdb3 -std=c++17 -Wall -Wextra -Weffc++                   \
       -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations         \
       -Wcast-align -Wcast-qual -Wchar-subscripts -Wconditionally-supported         \
       -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal             \
@@ -31,7 +31,7 @@ INC = inc
 C_EXT   = .cpp
 OBJ_EXT = .o
 
-LIB_NAMES = sss_nss_idmap 
+LIB_NAMES = sss_nss_idmap
 
 SOURCES  = $(wildcard $(SRC)/*$(C_EXT))
 OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:$(C_EXT)=$(OBJ_EXT)))
