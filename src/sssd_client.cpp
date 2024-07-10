@@ -1,9 +1,10 @@
-#include "testproject.h"
+#include "sssd_client.h"
 #include "utils.h"
 
 extern "C"
 {
 #include <sss_nss_idmap.h>
+#include <systemd/sd-bus.h>
 }
 
 #include <stdio.h>
@@ -15,108 +16,7 @@ extern "C"
 
 #include <assert.h>
 
-
-
-// void test()
-// {
-
-// }
-
-
-
-
-
-
-bool print_groups(int *error_code_p)
-{
-    bool res = true;
-    
-    printf("Groups:\n");
-    
-    int n_groups = getgroups(0, NULL);
-    if (n_groups == 0)
-    {
-        printf("No groups found.\n");
-        return true;
-    }
-
-    gid_t *groups = (gid_t*) calloc( (size_t) n_groups, sizeof(gid_t) );
-    if (!getgroups(n_groups, groups))
-    {
-        printf("Can't get groups' ids.\n");
-        *error_code_p = errno;
-        res = false;
-        goto CleanUp;
-    }
-
-    for (int ind  = 0; ind < n_groups; ind++)
-    {
-        putchar('\n');
-        struct group *gr = NULL;
-        if ( (gr = getgrgid(groups[ind])) )
-        {
-            printf("Group name: %s\n"
-                   "GID:        %u\n",
-                   gr->gr_name, gr->gr_gid);
-
-
-            ////TODO
-            char *SID = NULL;
-            sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
-
-            if (sss_nss_getsidbygid(gr->gr_gid, &SID, &type) == 0)
-                printf("SID: %s\n", SID);
-
-            free(SID);
-            ////
-        }
-    }
-
-CleanUp:
-    free(groups);
-
-    return res;
-}
-
-bool print_sid(int *error_code_p)
-{
-    char *SID = NULL;
-    bool res = false;
-
-    if ( !(res = uid_to_sid(getuid(), &SID, error_code_p) ) )
-        goto CleanUp;
-
-    printf("User SID: %s\n", SID);
-
-CleanUp:
-    free(SID);
-
-    return res;
-}
-
-bool print_domain_info(int *error_code_p)
-{
-    int err = 0;
-    bool res = false;
-
-    char *name = NULL;
-    char *SID  = NULL;
-    if (get_own_domain_name(&name, &err) && true) //TODO
-    {
-        res = true;
-        printf("Domain name: %s\nDomain SID: %s\n", name, SID);
-    }
-
-    if (error_code_p && err != 0)
-        *error_code_p = err;
-
-    free(name);
-    free(SID);
-
-    return res;
-}
-
-bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p, char **error_text_p)
+bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p, const char **error_text_p)
 {
     assert(SID_p);
 
@@ -137,10 +37,10 @@ bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p, char **error_text_p)
     return true;
 }
 
-bool is_domain_uid(uid_t UID, int* error_code_p, char **error_text_p)
+bool is_domain_uid(uid_t UID, int* error_code_p, const char **error_text_p)
 {
     char *SID = NULL;
-    char *error_text_old_val = NULL;
+    const char *error_text_old_val = NULL;
     
     if (error_text_p)
         error_text_old_val = *error_text_p;
@@ -208,7 +108,7 @@ static char *form_domain_name(sss_nss_kv *kv_list)
     return name;
 }
 
-bool get_own_domain_name(char **name_p, int *error_code_p)
+bool get_own_domain_name_nss(char **name_p, int *error_code_p)
 {
     assert(name_p);
 
@@ -253,6 +153,63 @@ CleanUp:
     if (kv_orig_list) sss_nss_free_kv(kv_orig_list);
     if (kv_from_orig) sss_nss_free_kv(kv_from_orig);
     
+    if (error_code_p) *error_code_p = err;
+    if (err != 0) return false;
+    else          return true;
+}
+
+//! @brief Used only in `get_own_domain_name_dbus()`.
+#define SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP(_msg) { \
+    if (err_dbus_msg_p) *err_dbus_msg_p = (_msg); \
+    err = EPROTO;                                 \
+    goto CleanUp;                                 \      
+} 
+
+bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err_dbus_msg_p)
+{
+    assert(name_p);
+
+    int err = 0;
+
+    sd_bus *bus           = NULL;
+    sd_bus_error error    = SD_BUS_ERROR_NULL;
+    sd_bus_message *reply = NULL;
+    char **domains_list   = NULL;
+
+    int r = 0;
+    r = sd_bus_open_system(&bus);
+    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to open system D-Bus.");
+
+    r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
+                                "/org/freedesktop/sssd/infopipe",
+                                "org.freedesktop.sssd.infopipe",
+                                "ListDomains", &error, &reply, "");
+    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method ListDomains. (maybe sudo is needed)")
+
+    r = sd_bus_message_read_strv(reply, &domains_list);
+    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of ListDomains");
+
+    //TODO add check for several enrties and that there is an entry at all
+
+    //DEBUG
+    printf("Domain object: %s\n", domains_list[0]);
+
+    r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
+                                domains_list[0],
+                                "org.freedesktop.DBus.Properties",
+                                "Get", &error, &reply, "ss", 
+                                "org.freedesktop.sssd.infopipe.Domains",
+                                "name");
+    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method Get (property 'name'). (maybe sudo is needed)");
+
+    r = sd_bus_message_read(reply, "v", "s", name_p);
+    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of Get (property 'name')");
+
+CleanUp:
+    sd_bus_flush_close_unrefp(&bus);
+    sd_bus_error_free(&error);
+    sd_bus_message_unrefp(&reply);
+
     if (error_code_p) *error_code_p = err;
     if (err != 0) return false;
     else          return true;

@@ -31,7 +31,7 @@ INC = inc
 C_EXT   = .cpp
 OBJ_EXT = .o
 
-LIB_NAMES = sss_nss_idmap
+LIB_NAMES = sss_nss_idmap systemd
 
 SOURCES  = $(wildcard $(SRC)/*$(C_EXT))
 OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:$(C_EXT)=$(OBJ_EXT)))
