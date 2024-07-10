@@ -41,7 +41,7 @@ bool get_own_domain_name_nss(char **name_p, int *error_code_p = NULL);
 //! @attention This function tries to get domain's name, asking SSSD using D-Bus for list 
 //!            of _all_ domains, assuming there is only one, and assuming that this is the 
 //!            one current user belongs to. It can give wrong 
-//!            answer in some cases, be careful.
+//!            answer in some cases, be careful. REQUIRES SUDO.
 //! @param[out] name_p      Domain name; !MUSTE BE FREED BY CALLER!
 //! @param[out] error_code  Error code (optional, changed only if `false` is returned);
 //! @return `true` if everything is okay, `false` if some error occurs. 

@@ -153,7 +153,7 @@ CleanUp:
     if (kv_orig_list) sss_nss_free_kv(kv_orig_list);
     if (kv_from_orig) sss_nss_free_kv(kv_from_orig);
     
-    if (error_code_p) *error_code_p = err;
+    if (error_code_p && err != 0) *error_code_p = err;
     if (err != 0) return false;
     else          return true;
 }
@@ -162,7 +162,7 @@ CleanUp:
 #define SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP(_msg) { \
     if (err_dbus_msg_p) *err_dbus_msg_p = (_msg); \
     err = EPROTO;                                 \
-    goto CleanUp;                                 \      
+    goto CleanUp;                                 \
 } 
 
 bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err_dbus_msg_p)
@@ -175,6 +175,7 @@ bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err
     sd_bus_error error    = SD_BUS_ERROR_NULL;
     sd_bus_message *reply = NULL;
     char **domains_list   = NULL;
+    char *domain_name     = NULL;
 
     int r = 0;
     r = sd_bus_open_system(&bus);
@@ -189,10 +190,12 @@ bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err
     r = sd_bus_message_read_strv(reply, &domains_list);
     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of ListDomains");
 
-    //TODO add check for several enrties and that there is an entry at all
+    if (domains_list == NULL) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("No domains are returned by ListDomains");
+
+    if (domains_list[1] != NULL) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("There is more than one domain returned by ListDomains");
 
     //DEBUG
-    printf("Domain object: %s\n", domains_list[0]);
+    //printf("Domain object: %s\n", domains_list[0]);
 
     r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
                                 domains_list[0],
@@ -202,15 +205,18 @@ bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err
                                 "name");
     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method Get (property 'name'). (maybe sudo is needed)");
 
-    r = sd_bus_message_read(reply, "v", "s", name_p);
+    r = sd_bus_message_read(reply, "v", "s", &domain_name);
     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of Get (property 'name')");
+
+    *name_p = strdup(domain_name);
+    // domain_name must not be freed on its own
 
 CleanUp:
     sd_bus_flush_close_unrefp(&bus);
     sd_bus_error_free(&error);
     sd_bus_message_unrefp(&reply);
 
-    if (error_code_p) *error_code_p = err;
+    if (error_code_p && err != 0) *error_code_p = err;
     if (err != 0) return false;
     else          return true;
 }

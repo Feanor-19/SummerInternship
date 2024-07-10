@@ -83,7 +83,7 @@ bool print_domain_info(int *error_code_p)
     bool res = true;
 
     char *name = NULL;
-    if (get_own_domain_name_nss(&name, &err)) //TODO
+    if (get_own_domain_name_nss(&name, &err))
     {
         printf("Domain name using NSS: %s\n", name);
         free(name);
