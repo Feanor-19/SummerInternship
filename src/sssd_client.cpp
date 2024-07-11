@@ -158,77 +158,83 @@ CleanUp:
     else          return true;
 }
 
-//! @brief Used only in `get_own_domain_name_dbus()`.
-#define SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP(_msg) { \
-    if (err_dbus_msg_p) *err_dbus_msg_p = (_msg); \
-    err = EPROTO;                                 \
-    goto CleanUp;                                 \
-} 
+//NOTE --------------------------------------DEPRECATED--------------------------------------------
+// //! @brief Used only in `get_own_domain_name_dbus()`.
+// #define SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP(_msg) { 
+//     if (err_dbus_msg_p) *err_dbus_msg_p = (_msg); 
+//     err = EPROTO;                                 
+//     goto CleanUp;                                 
+// } 
 
-//! @brief Used only in `get_own_domain_name_dbus()`.
-#define FREE_DOMAINS_LIST(_list) do{                        \
-    for (size_t ind = 0; _list[ind] != NULL; ind++)  \
-        free(_list[ind]);                            \
-    free(_list);                                     \
-}while(0)       
+// //! @brief Used only in `get_own_domain_name_dbus()`.
+// #define FREE_DOMAINS_LIST(_list) do{                        
+//     for (size_t ind = 0; _list[ind] != NULL; ind++)  
+//         free(_list[ind]);                            
+//     free(_list);                                     
+// }while(0)       
 
-bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err_dbus_msg_p)
-{
-    assert(name_p);
+// bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err_dbus_msg_p)
+// {
+//     assert(name_p);
 
-    int err = 0;
+//     int err = 0;
 
-    sd_bus *bus           = NULL;
-    sd_bus_error error    = SD_BUS_ERROR_NULL;
-    sd_bus_message *reply = NULL;
-    char **domains_list   = NULL;
-    char *domain_name     = NULL;
+//     sd_bus *bus           = NULL;
+//     sd_bus_error error    = SD_BUS_ERROR_NULL;
+//     sd_bus_message *reply = NULL;
+//     char **domains_list   = NULL;
+//     char *domain_name     = NULL;
 
-    int r = 0;
-    r = sd_bus_open_system(&bus);
-    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to open system D-Bus.");
+//     int r = 0;
+//     r = sd_bus_open_system(&bus);
+//     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to open system D-Bus.");
 
-    r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
-                                "/org/freedesktop/sssd/infopipe",
-                                "org.freedesktop.sssd.infopipe",
-                                "ListDomains", &error, &reply, "");
-    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method ListDomains. (maybe sudo is needed)")
+//     r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
+//                                 "/org/freedesktop/sssd/infopipe",
+//                                 "org.freedesktop.sssd.infopipe",
+//                                 "ListDomains", &error, &reply, "");
+//     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method ListDomains. (maybe sudo is needed)")
 
-    r = sd_bus_message_read_strv(reply, &domains_list);
-    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of ListDomains");
+//     r = sd_bus_message_read_strv(reply, &domains_list);
+//     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of ListDomains");
 
-    if (domains_list == NULL) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("No domains are returned by ListDomains");
+//     if (domains_list == NULL) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("No domains are returned by ListDomains");
 
-    if (domains_list[1] != NULL) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("There is more than one domain returned by ListDomains");
+//     if (domains_list[1] != NULL) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("There is more than one domain returned by ListDomains");
 
-    //DEBUG
-    //printf("Domain object: %s\n", domains_list[0]);
+//     //DEBUG
+//     //printf("Domain object: %s\n", domains_list[0]);
 
-    r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
-                                domains_list[0],
-                                "org.freedesktop.DBus.Properties",
-                                "Get", &error, &reply, "ss", 
-                                "org.freedesktop.sssd.infopipe.Domains",
-                                "name");
-    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method Get (property 'name'). (maybe sudo is needed)");
+//     r = sd_bus_call_method(bus, "org.freedesktop.sssd.infopipe",
+//                                 domains_list[0],
+//                                 "org.freedesktop.DBus.Properties",
+//                                 "Get", &error, &reply, "ss", 
+//                                 "org.freedesktop.sssd.infopipe.Domains",
+//                                 "name");
+//     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to call D-Bus method Get (property 'name'). (maybe sudo is needed)");
 
-    r = sd_bus_message_read(reply, "v", "s", &domain_name);
-    if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of Get (property 'name')");
+//     r = sd_bus_message_read(reply, "v", "s", &domain_name);
+//     if (r < 0) SET_DBUS_ERR_MSG_AND_GOTO_CLEANUP("Failed to read D-Bus reply of Get (property 'name')");
 
-    *name_p = strdup(domain_name);
-    // domain_name must not be freed on its own
+//     *name_p = strdup(domain_name);
+//     if (!(*name_p))
+//     {
+//         err = ENOMEM;
+//         goto CleanUp;
+//     }
+//     // domain_name must not be freed on its own
 
-CleanUp:
-    sd_bus_flush_close_unrefp(&bus);
-    sd_bus_error_free(&error);
-    sd_bus_message_unrefp(&reply);
+// CleanUp:
+//     sd_bus_flush_close_unrefp(&bus);
+//     sd_bus_error_free(&error);
+//     sd_bus_message_unrefp(&reply);
 
-    FREE_DOMAINS_LIST(domains_list);
+//     FREE_DOMAINS_LIST(domains_list);
 
-    if (error_code_p && err != 0) *error_code_p = err;
-    if (err != 0) return false;
-    else          return true;
-}
+//     if (error_code_p && err != 0) *error_code_p = err;
+//     if (err != 0) return false;
+//     else          return true;
+// }
 
 bool get_own_domain_sid(char **SID_p, int *error_code_p)
 {
@@ -252,138 +258,61 @@ Failed:
     return false;
 }
 
-enum PingAnswer
+//! @brief Return values of command `ping`. Platform dependent.
+enum PingRetCode
 {
-    PA_SUCCESS,
-    PA_NO_ANS,
-    PA_NOT_KNOWN,
-    PA_ERROR,
-    PA_UNEXPECTED,
+    PING_OK = 0,
+    PING_NO_ANS = 1,
+    PING_ERR = 2
 };
 
-const size_t BUFLEN = 1024;
-const char *EXEC_PING_ERR_MSG = "exec_err: %d";
-const int EXEC_PING_ERR_MSG_TRUE_SCANF_RES = 1;
-
-static PingAnswer parse_ping_answer(const char *ping_answer, int *error_code_p)
-{
-    assert(ping_answer);
-    assert(error_code_p);
-
-    // checking for one-line answers
-    int err = 0;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    int scanf_res = sscanf(ping_answer, EXEC_PING_ERR_MSG, &err);
-#pragma GCC diagnostic pop
-    if (scanf_res == EXEC_PING_ERR_MSG_TRUE_SCANF_RES)
-    {
-        *error_code_p = err;
-        return PA_ERROR;
-    }
-
-    const char WORD_KNOWN[] = "known";
-    char word_known_buf[sizeof(WORD_KNOWN)] = "";
-    scanf_res = sscanf(ping_answer, "%*s %*s Name or service not %5s", word_known_buf);
-    if (scanf_res == 1 && strcmp(word_known_buf, WORD_KNOWN))
-        return PA_NOT_KNOWN;
-
-    const char WORD_RESOLUTION[] = "resolution";
-    char word_resolution_buf[sizeof(WORD_RESOLUTION)] = "";
-    scanf_res = sscanf(ping_answer, "%*s %*s Temporary failure in name %5s", word_resolution_buf);
-    if (scanf_res == 1 && strcmp(word_resolution_buf, WORD_RESOLUTION))
-        return PA_NO_ANS;
-
-    // maybe answer is multi-lined
-    const char *cur = ping_answer;
-    int skipped_lines = 0;
-    while (skipped_lines < 3 && *cur != '\0')
-    {
-        while (*cur != '\n') cur++;
-        skipped_lines++;
-        cur++;
-    }
-
-    if (*cur == '\0')
-        cur = ping_answer;
-
-    int transmitted = 0, received = 0;
-    // expected: "1 packets transmitted, 1"
-    scanf_res = sscanf(cur, "%d %*s %*s %d", &transmitted, &received);
-    if (scanf_res == 2 && transmitted == received)
-        return PA_SUCCESS;
-    else if (received == 0 && transmitted != 0)
-        return PA_NO_ANS;
-
-    return PA_UNEXPECTED;
-}
-
-bool ping_domain(const char *domain_name, int *error_code_p)
+bool ping_domain(const char *domain_name, bool suppress_output, int *error_code_p)
 {
     assert(domain_name);
 
     int err = 0;
-    PingAnswer ping_ans = PA_ERROR;
+    bool res = false;
+    int ans = -1;
 
-    char buf[BUFLEN] = "";
-    
-    pid_t pid = 0;
+    const char CMD_PING_BASE[] = "ping -c 1 ";
+    const size_t CMD_PING_BASE_LEN = sizeof(CMD_PING_BASE) - 1;
 
-    int pipe_arr[2];
-    int res = pipe(pipe_arr);
-    if (res == -1)
+    const char CMD_PING_END[] = " >nul 2>nul";
+    const size_t CMD_PING_END_LEN = sizeof(CMD_PING_END) - 1;
+
+    char *cmd = (char*) calloc(CMD_PING_BASE_LEN + strlen(domain_name) + CMD_PING_END_LEN + 1, sizeof(char));
+    if (!cmd)
     {
-        err = errno;
-        goto Failed;
+        err = ENOMEM;
+        goto CleanUp;
     }
 
-    if( (pid = fork()) == 0)
-    {
-        dup2(pipe_arr[1], STDOUT_FILENO);
-        int execres = execl("/bin/ping", "/bin/ping", "-c", "1", "-q", domain_name, (char*)NULL);
-        if (execres == -1)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-            printf(EXEC_PING_ERR_MSG, errno); // writing into pipe
-#pragma GCC diagnostic pop
-        exit(errno);
-    }
+    strcpy(cmd, CMD_PING_BASE);
+    strcpy(cmd + CMD_PING_BASE_LEN, domain_name);
+    if (suppress_output) 
+        strcpy(cmd + CMD_PING_BASE_LEN + strlen(domain_name), CMD_PING_END);
 
-    waitpid(pid, NULL, 0);
-    if (read(pipe_arr[0], buf, BUFLEN) < 0)
-    {
-        err = errno;
-        goto Failed;
-    }
+    //DEBUG
+    //printf("cmd: %s\n", cmd);
 
-    close(pipe_arr[0]);
-    close(pipe_arr[1]);
-
-    ping_ans = parse_ping_answer(buf, &err);
-    switch (ping_ans)
+    ans = system(cmd);
+    switch (ans)
     {
-    case PA_SUCCESS:
-        return true;
+    case PING_OK:
+        res = true;
         break;
-    case PA_NO_ANS:
-    case PA_NOT_KNOWN:
-        return false;
+    case PING_NO_ANS:
+        res = false;
         break;
-    case PA_UNEXPECTED:
-        err = EPROTO;
-        goto Failed;
-        break;
-    case PA_ERROR:
-        goto Failed; // err already set
+    case PING_ERR:
     default:
-        assert(0 && "Unreacheable line!");
+        res = false;
+        err = EPROTO;
         break;
     }
 
-    assert(0 && "Unreacheable line!");
-    return false;
-
-Failed:
+CleanUp:
+    free(cmd);
     if (*error_code_p) *error_code_p = err;
-    return false;
+    return res;
 }

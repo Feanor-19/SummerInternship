@@ -31,7 +31,7 @@ INC = inc
 C_EXT   = .cpp
 OBJ_EXT = .o
 
-LIB_NAMES = sss_nss_idmap systemd
+LIB_NAMES = sss_nss_idmap #systemd
 
 SOURCES  = $(wildcard $(SRC)/*$(C_EXT))
 OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:$(C_EXT)=$(OBJ_EXT)))
@@ -72,3 +72,7 @@ copy_to_TEST: | $(TEST_DIR)
 
 $(TEST_DIR):
 	sudo mkdir -p $@
+
+.PHONY:	ping
+ping:
+	ping -c 1 numenor

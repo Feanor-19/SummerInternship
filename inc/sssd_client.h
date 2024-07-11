@@ -37,17 +37,18 @@ bool is_domain_uid(uid_t UID, int* error_code_p = NULL, const char **error_text_
 //! @note Error text can be obtained with strerror(error code) (see string.h)
 bool get_own_domain_name_nss(char **name_p, int *error_code_p = NULL);
 
-//! @brief Returns current domain's name, using D-Bus to ask SSSD for list of all domains.
-//! @attention This function tries to get domain's name, asking SSSD using D-Bus for list 
-//!            of _all_ domains, assuming there is only one, and assuming that this is the 
-//!            one current user belongs to. It can give wrong 
-//!            answer in some cases, be careful. REQUIRES SUDO.
-//! @param[out] name_p      Domain name; !MUSTE BE FREED BY CALLER!
-//! @param[out] error_code  Error code (optional, changed only if `false` is returned);
-//! @return `true` if everything is okay, `false` if some error occurs. 
-//! @note Error text can be obtained with strerror(error code) (see string.h)
-//! @note If there is some error concerning D-Bus, err_code = EPROTO and err_dbus_msg is filled.
-bool get_own_domain_name_dbus(char **name_p, int *error_code_p = NULL, const char **err_dbus_msg_p = NULL);
+//NOTE --------------------------------------DEPRECATED--------------------------------------------
+// //! @brief Returns current domain's name, using D-Bus to ask SSSD for list of all domains.
+// //! @attention This function tries to get domain's name, asking SSSD using D-Bus for list 
+// //!            of _all_ domains, assuming there is only one, and assuming that this is the 
+// //!            one current user belongs to. It can give wrong 
+// //!            answer in some cases, be careful. REQUIRES SUDO.
+// //! @param[out] name_p      Domain name; !MUSTE BE FREED BY CALLER!
+// //! @param[out] error_code  Error code (optional, changed only if `false` is returned);
+// //! @return `true` if everything is okay, `false` if some error occurs. 
+// //! @note Error text can be obtained with strerror(error code) (see string.h)
+// //! @note If there is some error concerning D-Bus, err_code = EPROTO and err_dbus_msg is filled.
+// bool get_own_domain_name_dbus(char **name_p, int *error_code_p = NULL, const char **err_dbus_msg_p = NULL);
 
 //! @brief Returns current domain's SID.
 //! @param[out] SID_p      Domain SID; !MUSTE BE FREED BY CALLER!
@@ -62,6 +63,7 @@ bool get_own_domain_sid(char **SID_p, int *error_code_p = NULL);
 //! @param[out] error_code  Error code (optional, changed only if `false` is returned);
 //! @return `true` if everything is okay, `false` AND err_code == 0 if ping is unsuccessful,
 //!         `false` AND err_code != 0 if some error occurs. 
-//! @note Error text can be obtained with strerror(error code) (see string.h)
-//! @note If command 'ping' returns something unexpected, err_code == EPROTO.
-bool ping_domain(const char *domain_name, int *error_code_p = NULL);
+//! @attention Uses `ping` return codes, which are platform dependent. See enum `PingRetCode`.
+//!            If `ping` returns something which is not part of the enum, err_code == EPROTO.
+//! @note To suppress output to stdout, '>nul 2>nul' is used.
+bool ping_domain(const char *domain_name, bool suppress_output, int *error_code_p = NULL);
