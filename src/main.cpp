@@ -25,13 +25,14 @@ int main()
             printf("Some non-crtical error occured during printing current user SID:\n");
             perror(strerror(err)); 
         }
+        
+        if (!print_domain_info(&err))
+        {
+            printf("Some non-crtical error occured during printing current domain info:\n");
+            perror(strerror(err));
+        }
     }
 
-    if (!print_domain_info(&err))
-    {
-        printf("Some non-crtical error occured during printing current domain info:\n");
-        perror(strerror(err));
-    }
     
     else if (err == 0)
     {

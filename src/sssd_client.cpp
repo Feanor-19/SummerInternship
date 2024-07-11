@@ -165,6 +165,13 @@ CleanUp:
     goto CleanUp;                                 \
 } 
 
+//! @brief Used only in `get_own_domain_name_dbus()`.
+#define FREE_DOMAINS_LIST(_list) do{                        \
+    for (size_t ind = 0; _list[ind] != NULL; ind++)  \
+        free(_list[ind]);                            \
+    free(_list);                                     \
+}while(0)       
+
 bool get_own_domain_name_dbus(char **name_p, int *error_code_p, const char **err_dbus_msg_p)
 {
     assert(name_p);
@@ -216,7 +223,31 @@ CleanUp:
     sd_bus_error_free(&error);
     sd_bus_message_unrefp(&reply);
 
+    FREE_DOMAINS_LIST(domains_list);
+
     if (error_code_p && err != 0) *error_code_p = err;
     if (err != 0) return false;
     else          return true;
+}
+
+bool get_own_domain_sid(char **SID_p, int *error_code_p)
+{
+    assert(SID_p);
+
+    int err = 0;
+    char *sid = NULL;
+    if (!uid_to_sid(getuid(), &sid, &err))
+        goto Failed;
+
+    // User SID without the last section, separated with '-', is the domain SID.
+    // That's why it's enough to change the last occurence of '-' with '\0'.
+    *(strrchr(sid, '-')) = '\0';
+
+    *SID_p = sid;
+    return true;
+
+Failed:
+    free(sid);
+    if (*error_code_p) *error_code_p = err;
+    return false;
 }

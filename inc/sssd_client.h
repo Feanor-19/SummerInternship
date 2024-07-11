@@ -48,3 +48,10 @@ bool get_own_domain_name_nss(char **name_p, int *error_code_p = NULL);
 //! @note Error text can be obtained with strerror(error code) (see string.h)
 //! @note If there is some error concerning D-Bus, err_code = EPROTO and err_dbus_msg is filled.
 bool get_own_domain_name_dbus(char **name_p, int *error_code_p = NULL, const char **err_dbus_msg_p = NULL);
+
+//! @brief Returns current domain's SID.
+//! @param[out] SID_p      Domain SID; !MUSTE BE FREED BY CALLER!
+//! @param[out] error_code  Error code (optional, changed only if `false` is returned);
+//! @return `true` if everything is okay, `false` if some error occurs. 
+//! @note Error text can be obtained with strerror(error code) (see string.h)
+bool get_own_domain_sid(char **SID_p, int *error_code_p = NULL);

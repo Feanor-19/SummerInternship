@@ -94,17 +94,30 @@ bool print_domain_info(int *error_code_p)
         printf("Failed to get own domain info using NSS: %s\n", strerror(err));
     }
 
-    const char *dbus_err_msg = NULL;
-    if (get_own_domain_name_dbus(&name, &err, &dbus_err_msg))
+    //NOTE This method of finding current domain name turned out to have more cons than pros.
+    // const char *dbus_err_msg = NULL;
+    // if (get_own_domain_name_dbus(&name, &err, &dbus_err_msg))
+    // {
+    //     printf("Domain name using D-Bus: %s\n", name);
+    //     free(name);
+    // }
+    // else
+    // {
+    //     res = false;
+    //     printf("Failed to get own domain info using D-Bus: %s\n", strerror(err));
+    //     if (err == EPROTO) printf("D-Bus error: %s\n", dbus_err_msg);
+    // }
+
+    char *SID = NULL;
+    if (get_own_domain_sid(&SID, &err))
     {
-        printf("Domain name using D-Bus: %s\n", name);
-        free(name);
+        printf("Domain SID: %s\n", SID);
+        free(SID);
     }
     else
     {
         res = false;
-        printf("Failed to get own domain info using D-Bus: %s\n", strerror(err));
-        if (err == EPROTO) printf("D-Bus error: %s\n", dbus_err_msg);
+        printf("Failed to get own domain SID: %s\n", strerror(err));
     }
 
     if (error_code_p && err != 0)
