@@ -251,3 +251,139 @@ Failed:
     if (*error_code_p) *error_code_p = err;
     return false;
 }
+
+enum PingAnswer
+{
+    PA_SUCCESS,
+    PA_NO_ANS,
+    PA_NOT_KNOWN,
+    PA_ERROR,
+    PA_UNEXPECTED,
+};
+
+const size_t BUFLEN = 1024;
+const char *EXEC_PING_ERR_MSG = "exec_err: %d";
+const int EXEC_PING_ERR_MSG_TRUE_SCANF_RES = 1;
+
+static PingAnswer parse_ping_answer(const char *ping_answer, int *error_code_p)
+{
+    assert(ping_answer);
+    assert(error_code_p);
+
+    // checking for one-line answers
+    int err = 0;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    int scanf_res = sscanf(ping_answer, EXEC_PING_ERR_MSG, &err);
+#pragma GCC diagnostic pop
+    if (scanf_res == EXEC_PING_ERR_MSG_TRUE_SCANF_RES)
+    {
+        *error_code_p = err;
+        return PA_ERROR;
+    }
+
+    const char WORD_KNOWN[] = "known";
+    char word_known_buf[sizeof(WORD_KNOWN)] = "";
+    scanf_res = sscanf(ping_answer, "%*s %*s Name or service not %5s", word_known_buf);
+    if (scanf_res == 1 && strcmp(word_known_buf, WORD_KNOWN))
+        return PA_NOT_KNOWN;
+
+    const char WORD_RESOLUTION[] = "resolution";
+    char word_resolution_buf[sizeof(WORD_RESOLUTION)] = "";
+    scanf_res = sscanf(ping_answer, "%*s %*s Temporary failure in name %5s", word_resolution_buf);
+    if (scanf_res == 1 && strcmp(word_resolution_buf, WORD_RESOLUTION))
+        return PA_NO_ANS;
+
+    // maybe answer is multi-lined
+    const char *cur = ping_answer;
+    int skipped_lines = 0;
+    while (skipped_lines < 3 && *cur != '\0')
+    {
+        while (*cur != '\n') cur++;
+        skipped_lines++;
+        cur++;
+    }
+
+    if (*cur == '\0')
+        cur = ping_answer;
+
+    int transmitted = 0, received = 0;
+    // expected: "1 packets transmitted, 1"
+    scanf_res = sscanf(cur, "%d %*s %*s %d", &transmitted, &received);
+    if (scanf_res == 2 && transmitted == received)
+        return PA_SUCCESS;
+    else if (received == 0 && transmitted != 0)
+        return PA_NO_ANS;
+
+    return PA_UNEXPECTED;
+}
+
+bool ping_domain(const char *domain_name, int *error_code_p)
+{
+    assert(domain_name);
+
+    int err = 0;
+    PingAnswer ping_ans = PA_ERROR;
+
+    char buf[BUFLEN] = "";
+    
+    pid_t pid = 0;
+
+    int pipe_arr[2];
+    int res = pipe(pipe_arr);
+    if (res == -1)
+    {
+        err = errno;
+        goto Failed;
+    }
+
+    if( (pid = fork()) == 0)
+    {
+        dup2(pipe_arr[1], STDOUT_FILENO);
+        int execres = execl("/bin/ping", "/bin/ping", "-c", "1", "-q", domain_name, (char*)NULL);
+        if (execres == -1)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+            printf(EXEC_PING_ERR_MSG, errno); // writing into pipe
+#pragma GCC diagnostic pop
+        exit(errno);
+    }
+
+    waitpid(pid, NULL, 0);
+    if (read(pipe_arr[0], buf, BUFLEN) < 0)
+    {
+        err = errno;
+        goto Failed;
+    }
+
+    close(pipe_arr[0]);
+    close(pipe_arr[1]);
+
+    ping_ans = parse_ping_answer(buf, &err);
+    switch (ping_ans)
+    {
+    case PA_SUCCESS:
+        return true;
+        break;
+    case PA_NO_ANS:
+    case PA_NOT_KNOWN:
+        return false;
+        break;
+    case PA_UNEXPECTED:
+        err = EPROTO;
+        goto Failed;
+        break;
+    case PA_ERROR:
+        goto Failed; // err already set
+    default:
+        assert(0 && "Unreacheable line!");
+        break;
+    }
+
+    assert(0 && "Unreacheable line!");
+    return false;
+
+Failed:
+    if (*error_code_p) *error_code_p = err;
+    return false;
+}

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 int main()
 {
@@ -31,6 +32,20 @@ int main()
             printf("Some non-crtical error occured during printing current domain info:\n");
             perror(strerror(err));
         }
+
+        printf("Trying to ping domain contoller...\n");
+        char *domain_name = NULL;
+        if (get_own_domain_name_nss(&domain_name, &err))
+        {
+            if (ping_domain(domain_name, &err))
+            {
+                printf("Domain contoller is online!\n");
+            }
+            else printf("Failed to ping %s: %s\n", domain_name, (err == 0 ? "no answer" : strerror(err)));
+
+            free(domain_name);
+        }
+        else printf("Failed to get domain name: %s\n", strerror(err));
     }
 
     

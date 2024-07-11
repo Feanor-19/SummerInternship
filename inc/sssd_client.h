@@ -55,3 +55,13 @@ bool get_own_domain_name_dbus(char **name_p, int *error_code_p = NULL, const cha
 //! @return `true` if everything is okay, `false` if some error occurs. 
 //! @note Error text can be obtained with strerror(error code) (see string.h)
 bool get_own_domain_sid(char **SID_p, int *error_code_p = NULL);
+
+//! @brief Executes "ping -c 1 *domain_name*", trying to check whether domain controller 
+//!        is online or not.
+//! @param[in] domain_name Full name of the domain, which cab ne pinged.
+//! @param[out] error_code  Error code (optional, changed only if `false` is returned);
+//! @return `true` if everything is okay, `false` AND err_code == 0 if ping is unsuccessful,
+//!         `false` AND err_code != 0 if some error occurs. 
+//! @note Error text can be obtained with strerror(error code) (see string.h)
+//! @note If command 'ping' returns something unexpected, err_code == EPROTO.
+bool ping_domain(const char *domain_name, int *error_code_p = NULL);
