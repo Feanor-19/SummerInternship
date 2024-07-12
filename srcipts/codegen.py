@@ -1,14 +1,22 @@
-def parse_main(main_filename : str) -> list[str]:
+def parse_main(main_filename : str) -> list[(str, list[str])]:
     main_file = open(main_filename, "r")
     lines = main_file.readlines()
 
     libs = []
+    cur_lib_includes = []
 
     for line in lines:
         # comment or an empty line
         if line[0] == COMMENT_SYMBOL or len(line) == 1:
             continue
-        libs.append("codegen/" + line.strip() + ".codegen")
+
+        line = line.strip()
+
+        if line.startswith(("#include", "extern \"C\"")):
+            cur_lib_includes.append(line)
+        else:
+            libs.append((line, list(cur_lib_includes)))
+            cur_lib_includes.clear()
 
     return libs
 
@@ -34,5 +42,7 @@ COMMENT_SYMBOL = ';'
 
 libs = parse_main(MAIN_FILE)
 
+print(libs)
+
 for lib in libs:
-    lib_funcs = parse_lib_funcs(lib)
+    lib_funcs = parse_lib_funcs("codegen/" + lib[0] + ".codegen")

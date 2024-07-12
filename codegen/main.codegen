@@ -8,21 +8,20 @@
 
 ; Every line starting with ';' is ignored.
 
-sss_nss_idmap
 
 ; -------------------------------------------------------------------------------------------------
-; Every lib codegen file must contain functions from this lib, which must be dynamically linked 
-; in runtime. , don't forget
-; to include these header files in link.h
+; Each library codegen file must contain functions from this lib, which must be dynamically linked 
+; in runtime. 
 
 ; Example (without quotes):
 ; `int sss_nss_getorigbyname(const char*,struct sss_nss_kv**,enum sss_id_type*)`
 
 ; -------------------------------------------------------------------------------------------------
 ; If arguments of these functions are defined in some header files (for the example above, 
-; `struct sss_nss_kv` needs "sss_nss_idmap.h" to be included), specify these include directives here.
-; If a line starts with '#include' or 'extern "C"', it will be recognized as an instruction 
-; to include header.
+; `struct sss_nss_kv` needs "sss_nss_idmap.h" to be included), specify all these include directives BEFORE
+; the line with the lib's name each on its own line. 
+; NOTE: If a line starts with '#include' or 'extern "C"', it will be recognized as an instruction 
+; to include header, otherwise it's considered to be some lib's name.
 
 ; Example (without quotes):
 ; ';include <stdint.h>'
@@ -30,4 +29,32 @@ sss_nss_idmap
 ; Another example (without quotes):
 ; extern "C" { #include <sss_nss_idmap.h> }
 
+; -------------------------------------------------------------------------------------------------
+
+; FULL EXAMPLE:
+
+; Some another library "mylib1"
+
+; #include <mylib1_partA.h>
+
+; #include <mylib1_partB.h>
+
+; extern "C" { #include <mylib1_partC.h> }
+
+; mylib1
+
+; -------------------------------------------------------------------------------------------------
+
+; Library sss-nss-idmap:
+
 extern "C" { #include <sss_nss_idmap.h> }
+
+#include <aaa.h>
+
+sss_nss_idmap
+
+#include "bbb.h"
+
+somelib
+
+someoterlib
