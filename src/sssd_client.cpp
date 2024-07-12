@@ -1,11 +1,13 @@
 #include "sssd_client.h"
 #include "utils.h"
 
-extern "C"
-{
-#include <sss_nss_idmap.h>
-#include <systemd/sd-bus.h>
-}
+// extern "C"
+// {
+// #include <sss_nss_idmap.h>
+// //#include <systemd/sd-bus.h> //NOTE - for deprecated `get_own_domain_name_dbus()`
+// }
+
+#include "dl_sss_nss_idmap.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -21,7 +23,7 @@ bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p, const char **error_t
     assert(SID_p);
 
     sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
-    int err = sss_nss_getsidbyuid(UID, SID_p, &type);
+    int err = DL_sss_nss_getsidbyuid(UID, SID_p, &type);
 
     if (err)
     {
@@ -63,7 +65,7 @@ static char *form_domain_name(sss_nss_kv *kv_list)
 {
     assert(kv_list);
 
-    const char *DC = "DC";
+    const char * const DC = "DC";
 
     // compute the resulting length
     size_t cnt = 0;
@@ -108,9 +110,125 @@ static char *form_domain_name(sss_nss_kv *kv_list)
     return name;
 }
 
+//REVIEW - можно использовать готовые алгоритмы из C++, но стоит ли ради этого
+// мешать очень Сишный код с C++?
+//! @brief Counts number of occurences of `c` in `str`.
+inline size_t count_char_in_str(const char *str, char c)
+{
+    assert(str);
+
+    size_t ans = 0;
+    while (*str != '\0')
+    {
+        if (c == *str) ans++;
+        str++;
+    }
+
+    return ans;
+}
+
+sss_nss_kv *parse_dist_name( const char *dist_name, int *err_code_p)
+{
+    enum parse_dist_state
+    {
+        PD_START, //< start state
+        PD_ATTR,  //< attribute
+        PD_EQU,   //< between `attribute` and `value`, corresponds to `=`
+        PD_VAL,   //< value
+    };
+
+    assert(dist_name);
+
+    int err = 0;
+    const char *cur = dist_name;
+    parse_dist_state st = PD_START;
+    const char *substr_start = NULL;
+    size_t substr_cnt = 0;
+    size_t kv_ind = 0;
+
+    size_t kv_size = count_char_in_str(dist_name, '=');
+
+    sss_nss_kv *kv_list = (sss_nss_kv*) calloc(kv_size+1, sizeof(sss_nss_kv));
+    if (!kv_list)
+    {
+        err = ENOMEM;
+        goto Error;
+    }
+
+    while (*cur != '\0')
+    {
+        if (*cur == '\\')
+        {
+            if (st == PD_ATTR || st == PD_VAL) substr_cnt+=2;
+            cur+=2;
+            continue;
+        }
+
+        switch (st)
+        {
+        case PD_START:
+            st = PD_ATTR;
+            substr_start = cur;
+            substr_cnt = 1;
+            break;
+        case PD_ATTR:
+            if (*cur == '=') 
+            {   
+                st = PD_EQU;
+                kv_list[kv_ind].key = strndup(substr_start, substr_cnt);
+            }
+            else
+                substr_cnt++;
+            break;
+        case PD_EQU:
+            st = PD_VAL;
+            substr_start = cur;
+            substr_cnt = 1;
+            break;
+        case PD_VAL:
+            if (*cur == ',') 
+            {   
+                st = PD_START;
+                kv_list[kv_ind].value = strndup(substr_start, substr_cnt);
+                kv_ind++;
+            }
+            else
+                substr_cnt++;
+            break;
+        default:
+            assert(0 && "Unreacheable line!");
+            break;
+        }
+
+        cur++;
+    }    
+
+    if (kv_ind + 1 != kv_size)
+        goto ParseError;
+
+    if (st == PD_VAL)
+        kv_list[kv_ind].value = strndup(substr_start, substr_cnt);
+    else
+        goto ParseError;
+
+    kv_list[kv_size].key   = NULL;
+    kv_list[kv_size].value = NULL;
+    
+    return kv_list;
+
+ParseError:
+    err = EPROTO;
+Error:
+    if (err_code_p) *err_code_p = err;
+    if (kv_list) DL_sss_nss_free_kv(kv_list);
+    return NULL;
+}
+
 bool get_own_domain_name_nss(char **name_p, int *error_code_p)
 {
     assert(name_p);
+
+    const char * const KV_LIST_ORIGINAL_DN = "originalDN";
 
     int err = 0;
 
@@ -120,7 +238,7 @@ bool get_own_domain_name_nss(char **name_p, int *error_code_p)
 
     sss_nss_kv *kv_from_orig = NULL;
 
-    err = sss_nss_getorigbyname( getlogin(), &kv_orig_list, &type );
+    err = DL_sss_nss_getorigbyname( getlogin(), &kv_orig_list, &type );
     if (err != 0) goto CleanUp; 
 
     original_DN = find_kv_entry_by_key(kv_orig_list, KV_LIST_ORIGINAL_DN);
@@ -150,8 +268,8 @@ bool get_own_domain_name_nss(char **name_p, int *error_code_p)
     }
 
 CleanUp:
-    if (kv_orig_list) sss_nss_free_kv(kv_orig_list);
-    if (kv_from_orig) sss_nss_free_kv(kv_from_orig);
+    if (kv_orig_list) DL_sss_nss_free_kv(kv_orig_list);
+    if (kv_from_orig) DL_sss_nss_free_kv(kv_from_orig);
     
     if (error_code_p && err != 0) *error_code_p = err;
     if (err != 0) return false;

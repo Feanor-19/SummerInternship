@@ -73,6 +73,6 @@ copy_to_TEST: | $(TEST_DIR)
 $(TEST_DIR):
 	sudo mkdir -p $@
 
-.PHONY:	ping
-ping:
-	ping -c 1 numenor
+.PHONY:	codegen
+codegen:
+	@python3 srcipts/codegen.py

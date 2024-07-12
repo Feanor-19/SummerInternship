@@ -1,4 +1,5 @@
 #include "io.h"
+#include "link.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -8,10 +9,14 @@
 
 int main()
 {
-    //test();
+    const char *dlink_err_msg = NULL;
+    if (!dlink_open_sss_nss_idmap(&dlink_err_msg))
+    {
+        printf("DINAMIC LINK ERROR: Failed to open: %s", dlink_err_msg);
+        exit(-1);
+    }    
 
-    int err        = 0;
-    //char *err_text = NULL;
+    int err = 0;
 
     printf("Current user info:\n");
 
@@ -63,6 +68,13 @@ int main()
     {
         printf("Some non-crtical error occured during printing current user groups:\n");
         perror(strerror(err));
+    }
+
+
+    if (!dlink_close_sss_nss_idmap(&dlink_err_msg))
+    {
+        printf("DINAMIC LINK ERROR: Failed to close: %s", dlink_err_msg);
+        exit(-1);
     }
     
     return 0;

@@ -2,8 +2,10 @@
 
 #include <unistd.h>
 
-
-const char * const KV_LIST_ORIGINAL_DN = "originalDN";
+extern "C"
+{
+#include <sss_nss_idmap.h>
+}
 
 
 //! @brief Converts given UID to SID.
@@ -26,6 +28,14 @@ bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p = NULL, const char **
 //! @return `true` if everything is okay, `false` if some error occurs. 
 //! @note Error text can be also obtained with strerror(error code) (see string.h)
 bool is_domain_uid(uid_t UID, int* error_code_p = NULL, const char **error_text_p = NULL);
+
+//! @brief Parses `distinguished name` into key-value list (`sss_nss_kv`).
+//! @example "CN=Administrator,CN=Users,DC=NUMENOR,DC=online" will be parsed into
+//!          [ {"CN", "Administrator"}, {"CN", "Users"}, {"DC", "NUMENOR"}, {"DC", "online"} ]
+//! @attention Returned `kv_list` must be freed by caller using `sss_nss_free_kv`.
+//! @note If given `dist_name` isn't properly formed, NULL is returned AND err_code = EPROTO.
+//! @note Error text can be obtained with strerror(error code) (see string.h)
+sss_nss_kv *parse_dist_name( const char *dist_name, int *err_code_p = NULL );
 
 //! @brief Returns current domain's name, using libnss.
 //! @attention This function tries to get domain's name from current user 'original data',

@@ -1,0 +1,33 @@
+; This is main file for code generation, used in `link.cpp`, `link.h` and `dl_funcs.h`.
+; For each lib (actually, for each shared object) used, there must be a line in this file 
+; with lib name (see below) and a corresponding codegen file in this dir.
+
+; Example for lib, which is represented by 'libname.so':
+; Line in this file (without quotes): `name`
+; Corresponding codegen file in this dir (without quotes): `name.codegen` 
+
+; Every line starting with ';' is ignored.
+
+sss_nss_idmap
+
+; -------------------------------------------------------------------------------------------------
+; Every lib codegen file must contain functions from this lib, which must be dynamically linked 
+; in runtime. , don't forget
+; to include these header files in link.h
+
+; Example (without quotes):
+; `int sss_nss_getorigbyname(const char*,struct sss_nss_kv**,enum sss_id_type*)`
+
+; -------------------------------------------------------------------------------------------------
+; If arguments of these functions are defined in some header files (for the example above, 
+; `struct sss_nss_kv` needs "sss_nss_idmap.h" to be included), specify these include directives here.
+; If a line starts with '#include' or 'extern "C"', it will be recognized as an instruction 
+; to include header.
+
+; Example (without quotes):
+; ';include <stdint.h>'
+
+; Another example (without quotes):
+; extern "C" { #include <sss_nss_idmap.h> }
+
+extern "C" { #include <sss_nss_idmap.h> }
