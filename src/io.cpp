@@ -1,6 +1,8 @@
 #include "io.h"
 #include "utils.h"
 
+#include "dl_sss_nss_idmap.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <grp.h>
@@ -47,7 +49,7 @@ bool print_groups(int *error_code_p)
             char *SID = NULL;
             sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
 
-            if (sss_nss_getsidbygid(gr->gr_gid, &SID, &type) == 0)
+            if (DL_sss_nss_getsidbygid(gr->gr_gid, &SID, &type) == 0)
                 printf("SID: %s\n", SID);
 
             free(SID);

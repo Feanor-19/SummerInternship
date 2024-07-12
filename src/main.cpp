@@ -12,7 +12,7 @@ int main()
     const char *dlink_err_msg = NULL;
     if (!dlink_open_sss_nss_idmap(&dlink_err_msg))
     {
-        printf("DINAMIC LINK ERROR: Failed to open: %s", dlink_err_msg);
+        printf("DINAMIC LINK ERROR: Failed to open: %s\n", dlink_err_msg);
         exit(-1);
     }    
 
@@ -73,7 +73,7 @@ int main()
 
     if (!dlink_close_sss_nss_idmap(&dlink_err_msg))
     {
-        printf("DINAMIC LINK ERROR: Failed to close: %s", dlink_err_msg);
+        printf("DINAMIC LINK ERROR: Failed to close: %s\n", dlink_err_msg);
         exit(-1);
     }
     

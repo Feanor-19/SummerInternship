@@ -11,10 +11,11 @@
 
 ; -------------------------------------------------------------------------------------------------
 ; Each library codegen file must contain functions from this lib, which must be dynamically linked 
-; in runtime. 
+; in runtime. See example for how functions must be represented (return type, func's name and 
+; func's args must be separated with '@').
 
 ; Example (without quotes):
-; `int sss_nss_getorigbyname(const char*,struct sss_nss_kv**,enum sss_id_type*)`
+; `int@sss_nss_getorigbyname@(const char*,struct sss_nss_kv**,enum sss_id_type*)`
 
 ; -------------------------------------------------------------------------------------------------
 ; If arguments of these functions are defined in some header files (for the example above, 
@@ -49,12 +50,4 @@
 
 extern "C" { #include <sss_nss_idmap.h> }
 
-#include <aaa.h>
-
 sss_nss_idmap
-
-#include "bbb.h"
-
-somelib
-
-someoterlib
