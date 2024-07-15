@@ -15,3 +15,7 @@ extern int (*DL_sss_nss_getsidbyuid)(uint32_t,char **,enum sss_id_type*);
 
 extern int (*DL_sss_nss_getsidbygid)(uint32_t id, char **sid, enum sss_id_type *type);
 
+extern int (*DL_sss_nss_getsidbyname)(const char *fq_name, char **sid, enum sss_id_type *type);
+
+extern int (*DL_sss_nss_getnamebysid)(const char *sid, char **fq_name, enum sss_id_type *type);
+

@@ -24,7 +24,7 @@ int main()
            "Username: %s\n", 
            getuid(), getlogin()); 
     
-    if (is_domain_uid(getuid(), &err))
+    if (is_domain_username(getlogin(), &err))
     {
         if (!print_sid(&err))
         {

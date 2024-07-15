@@ -39,6 +39,27 @@ bool uid_to_sid(uid_t UID, char **SID_p, int* error_code_p, const char **error_t
     return true;
 }
 
+bool username_to_sid(const char *username, char **SID_p, int* error_code_p, const char **error_text_p)
+{
+    assert(SID_p);
+
+    sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
+    int err = DL_sss_nss_getsidbyname(username, SID_p, &type);
+
+    if (err)
+    {
+        if (error_code_p)
+            *error_code_p = err;
+        
+        if (error_text_p)
+            *error_text_p = strerror(err);
+
+        return false;
+    }
+
+    return true;
+}
+
 bool is_domain_uid(uid_t UID, int* error_code_p, const char **error_text_p)
 {
     char *SID = NULL;
@@ -48,6 +69,27 @@ bool is_domain_uid(uid_t UID, int* error_code_p, const char **error_text_p)
         error_text_old_val = *error_text_p;
 
     bool res = uid_to_sid(UID, &SID, error_code_p, error_text_p);
+    if (error_code_p && (res == false) && *error_code_p == ENOENT)
+    {
+        *error_code_p = 0;
+        if (error_text_p)
+            *error_text_p = error_text_old_val;
+    }
+
+    free(SID);
+
+    return res;
+}
+
+bool is_domain_username(const char *username, int* error_code_p, const char **error_text_p)
+{
+    char *SID = NULL;
+    const char *error_text_old_val = NULL;
+    
+    if (error_text_p)
+        error_text_old_val = *error_text_p;
+
+    bool res = username_to_sid(username, &SID, error_code_p, error_text_p);
     if (error_code_p && (res == false) && *error_code_p == ENOENT)
     {
         *error_code_p = 0;
@@ -360,7 +402,7 @@ bool get_own_domain_sid(char **SID_p, int *error_code_p)
 
     int err = 0;
     char *sid = NULL;
-    if (!uid_to_sid(getuid(), &sid, &err))
+    if (!username_to_sid(getlogin(), &sid, &err))
         goto Failed;
 
     // User SID without the last section, separated with '-', is the domain SID.
@@ -372,7 +414,7 @@ bool get_own_domain_sid(char **SID_p, int *error_code_p)
 
 Failed:
     free(sid);
-    if (*error_code_p) *error_code_p = err;
+    if (error_code_p) *error_code_p = err;
     return false;
 }
 
@@ -431,7 +473,7 @@ bool ping_domain(const char *domain_name, bool suppress_output, int *error_code_
 
 CleanUp:
     free(cmd);
-    if (*error_code_p) *error_code_p = err;
+    if (error_code_p) *error_code_p = err;
     return res;
 }
 
@@ -465,22 +507,46 @@ bool get_domain_groups_by_user_sid(const char *user_SID, DomainGroups *groups_p,
     gid_t *unix_groups = NULL;
     DomainGroups domain_groups = {};
     size_t d_ind = 0;
-    
-    int n_unix_groups = getgroups(0, NULL);
-    if (n_unix_groups == 0)
-    {
-        err = errno;
+    passwd *pw = NULL;
+    int n_unix_groups = 0;
+
+    char *username = NULL;
+    sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
+    if ( (err = DL_sss_nss_getnamebysid(user_SID, &username, &type)) != 0 )
+        goto Failed;
+
+ 
+    if ( !(pw = getpwnam(username)) ) {
+        if (errno)
+            err = errno;
+        else
+            err = ENOENT;
         goto Failed;
     }
 
-    unix_groups = (gid_t*) calloc( (size_t) n_unix_groups, sizeof(gid_t) );
+    n_unix_groups = 0;
+    getgrouplist(username, pw->pw_gid, unix_groups, &n_unix_groups); // this call will set to actual n_unix_groups
 
-    // actually n_domain_groups can be less than n_unix_groups, but it's not so important
-    domain_groups.list = (DomainGroup*) calloc( (size_t) n_unix_groups, sizeof(DomainGroup) );
-
-    if (!getgroups(n_unix_groups, unix_groups))
+    if (n_unix_groups == 0)
     {
-        err = errno;
+        err = ENOENT;
+        goto Failed;
+    }
+
+    unix_groups = (gid_t*) reallocarray(unix_groups, (size_t) n_unix_groups, sizeof(gid_t));
+    if (!unix_groups)
+    {
+        err = ENOMEM;
+        goto Failed;
+    }
+
+    getgrouplist(username, pw->pw_gid, unix_groups, &n_unix_groups);
+
+    // n_dom_groups can be less than n_unix_groups, but it's not that important
+    domain_groups.list = (DomainGroup*) calloc( (size_t) n_unix_groups, sizeof(DomainGroup));
+    if (!domain_groups.list)
+    {
+        err = ENOMEM;
         goto Failed;
     }
 
@@ -490,7 +556,7 @@ bool get_domain_groups_by_user_sid(const char *user_SID, DomainGroups *groups_p,
         if ( (gr = getgrgid(unix_groups[u_ind])) )
         {            
             char *SID = NULL;
-            sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
+            type = SSS_ID_TYPE_NOT_SPECIFIED;
 
             int sid_err = DL_sss_nss_getsidbygid(gr->gr_gid, &SID, &type); 
             if (sid_err == 0)
@@ -518,6 +584,6 @@ bool get_domain_groups_by_user_sid(const char *user_SID, DomainGroups *groups_p,
 Failed:
     free(unix_groups);
     free_DomainGroups(&domain_groups);
-    if (*error_code_p) *error_code_p = err;
+    if (error_code_p) *error_code_p = err;
     return false;
 }

@@ -20,7 +20,7 @@ bool print_domain_groups(int *error_code_p)
     char *SID = NULL;
     DomainGroups dom_groups = {};
 
-    if ( !(uid_to_sid(getuid(), &SID, &err) ) )
+    if ( !(username_to_sid(getlogin(), &SID, &err) ) )
         goto CleanUp;
 
     if ( !(get_domain_groups_by_user_sid(SID, &dom_groups, &err)) )
@@ -44,7 +44,7 @@ CleanUp:
     if (err != 0) res = false;
     free_DomainGroups(&dom_groups);
     free(SID);
-    if (*error_code_p && res == false) *error_code_p = err;
+    if (error_code_p && !res) *error_code_p = err;
     return res;
 }
 
@@ -53,7 +53,7 @@ bool print_sid(int *error_code_p)
     char *SID = NULL;
     bool res = false;
 
-    if ( !(res = uid_to_sid(getuid(), &SID, error_code_p) ) )
+    if ( !(res = username_to_sid(getlogin(), &SID, error_code_p) ) )
         goto CleanUp;
 
     printf("User SID: %s\n", SID);

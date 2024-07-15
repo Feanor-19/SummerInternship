@@ -20,6 +20,12 @@ typedef int (*DL_sss_nss_getsidbyuid_t)(uint32_t,char **,enum sss_id_type*);
 int (*DL_sss_nss_getsidbygid)(uint32_t id, char **sid, enum sss_id_type *type) = nullptr;
 typedef int (*DL_sss_nss_getsidbygid_t)(uint32_t id, char **sid, enum sss_id_type *type);
 
+int (*DL_sss_nss_getsidbyname)(const char *fq_name, char **sid, enum sss_id_type *type) = nullptr;
+typedef int (*DL_sss_nss_getsidbyname_t)(const char *fq_name, char **sid, enum sss_id_type *type);
+
+int (*DL_sss_nss_getnamebysid)(const char *sid, char **fq_name, enum sss_id_type *type) = nullptr;
+typedef int (*DL_sss_nss_getnamebysid_t)(const char *sid, char **fq_name, enum sss_id_type *type);
+
 
 void *DL_handle_sss_nss_idmap = nullptr;
 
@@ -41,6 +47,12 @@ bool dlink_open_sss_nss_idmap(const char **err_msg_p)
 
     DL_sss_nss_getsidbygid = (DL_sss_nss_getsidbygid_t) dlsym(handle, "sss_nss_getsidbygid");
     if (!DL_sss_nss_getsidbygid) goto Failed;
+
+    DL_sss_nss_getsidbyname = (DL_sss_nss_getsidbyname_t) dlsym(handle, "sss_nss_getsidbyname");
+    if (!DL_sss_nss_getsidbyname) goto Failed;
+
+    DL_sss_nss_getnamebysid = (DL_sss_nss_getnamebysid_t) dlsym(handle, "sss_nss_getnamebysid");
+    if (!DL_sss_nss_getnamebysid) goto Failed;
 
 #pragma GCC diagnostic pop
     DL_handle_sss_nss_idmap = handle;

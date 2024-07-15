@@ -5,3 +5,7 @@ void@sss_nss_free_kv@(struct sss_nss_kv*)
 int@sss_nss_getsidbyuid@(uint32_t,char **,enum sss_id_type*)
 
 int@sss_nss_getsidbygid@(uint32_t id, char **sid, enum sss_id_type *type)
+
+int@sss_nss_getsidbyname@(const char *fq_name, char **sid, enum sss_id_type *type)
+
+int@sss_nss_getnamebysid@(const char *sid, char **fq_name, enum sss_id_type *type)
