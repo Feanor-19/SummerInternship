@@ -3,11 +3,12 @@
 #include "sssd_client.h"
 
 
-//! @brief Prints current user groups into stdout.
+//! @brief Prints current user domain groups into stdout.
 //! @param[out] error_code  Error code (optional, changed only if `false` is returned);
 //! @return `true` if everything is okay, `false` if some error occurs. 
 //! @note Error text can be obtained with strerror(error code) (see string.h)
-bool print_groups(int *error_code_p = NULL);
+//! @note error_code == ENOENT, if no domain groups are found. 
+bool print_domain_groups(int *error_code_p = NULL);
 
 //! @brief Prints current user SID.
 //! @param[out] error_code  Error code (optional, changed only if `false` is returned);

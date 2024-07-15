@@ -434,3 +434,90 @@ CleanUp:
     if (*error_code_p) *error_code_p = err;
     return res;
 }
+
+static void free_DomainGroup(DomainGroup *gr)
+{
+    if (gr)
+    {
+        free(gr->name);
+        free(gr->sid);
+    }
+}
+
+void free_DomainGroups(DomainGroups *grs)
+{
+    if (grs)
+    {
+        for (size_t ind = 0; ind < grs->n_groups; ind++)
+        {
+            free_DomainGroup(&(grs->list[ind]));
+        }
+    }
+}
+
+bool get_domain_groups_by_user_sid(const char *user_SID, DomainGroups *groups_p, int *error_code_p)
+{
+    assert(user_SID);
+    assert(groups_p);
+
+    int err = 0;
+
+    gid_t *unix_groups = NULL;
+    DomainGroups domain_groups = {};
+    size_t d_ind = 0;
+    
+    int n_unix_groups = getgroups(0, NULL);
+    if (n_unix_groups == 0)
+    {
+        err = errno;
+        goto Failed;
+    }
+
+    unix_groups = (gid_t*) calloc( (size_t) n_unix_groups, sizeof(gid_t) );
+
+    // actually n_domain_groups can be less than n_unix_groups, but it's not so important
+    domain_groups.list = (DomainGroup*) calloc( (size_t) n_unix_groups, sizeof(DomainGroup) );
+
+    if (!getgroups(n_unix_groups, unix_groups))
+    {
+        err = errno;
+        goto Failed;
+    }
+
+    for (int u_ind  = 0; u_ind < n_unix_groups; u_ind++)
+    {
+        struct group *gr = NULL;
+        if ( (gr = getgrgid(unix_groups[u_ind])) )
+        {            
+            char *SID = NULL;
+            sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
+
+            int sid_err = DL_sss_nss_getsidbygid(gr->gr_gid, &SID, &type); 
+            if (sid_err == 0)
+            {
+                domain_groups.list[d_ind].gid = gr->gr_gid;
+                domain_groups.list[d_ind].name = strdup(gr->gr_name);
+                domain_groups.list[d_ind].sid = SID;
+                d_ind++;
+            }
+            else if (sid_err == ENOENT) // not a domain group
+                continue;
+            else
+            {
+                err = sid_err;
+                goto Failed;
+            }
+        }
+    }
+
+    domain_groups.n_groups = d_ind;
+
+    *groups_p = domain_groups;
+    return true;
+
+Failed:
+    free(unix_groups);
+    free_DomainGroups(&domain_groups);
+    if (*error_code_p) *error_code_p = err;
+    return false;
+}

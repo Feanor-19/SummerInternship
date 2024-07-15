@@ -12,54 +12,39 @@
 
 #include <assert.h>
 
-bool print_groups(int *error_code_p)
+bool print_domain_groups(int *error_code_p)
 {
+    int err = 0;
     bool res = true;
     
-    printf("Groups:\n");
-    
-    int n_groups = getgroups(0, NULL);
-    if (n_groups == 0)
-    {
-        printf("No groups found.\n");
-        return true;
-    }
+    char *SID = NULL;
+    DomainGroups dom_groups = {};
 
-    gid_t *groups = (gid_t*) calloc( (size_t) n_groups, sizeof(gid_t) );
-    if (!getgroups(n_groups, groups))
+    if ( !(uid_to_sid(getuid(), &SID, &err) ) )
+        goto CleanUp;
+
+    if ( !(get_domain_groups_by_user_sid(SID, &dom_groups, &err)) )
+        goto CleanUp;
+
+    if (dom_groups.n_groups == 0)
     {
-        printf("Can't get groups' ids.\n");
-        *error_code_p = errno;
-        res = false;
+        err = ENOENT;
         goto CleanUp;
     }
 
-    for (int ind  = 0; ind < n_groups; ind++)
+    printf("Domain Groups:\n");
+    for (size_t ind = 0; ind < dom_groups.n_groups; ind++ )
     {
-        putchar('\n');
-        struct group *gr = NULL;
-        if ( (gr = getgrgid(groups[ind])) )
-        {
-            printf("Group name: %s\n"
-                   "GID:        %u\n",
-                   gr->gr_name, gr->gr_gid);
-
-
-            ////TODO
-            char *SID = NULL;
-            sss_id_type type = SSS_ID_TYPE_NOT_SPECIFIED;
-
-            if (DL_sss_nss_getsidbygid(gr->gr_gid, &SID, &type) == 0)
-                printf("SID: %s\n", SID);
-
-            free(SID);
-            ////
-        }
+        printf("Group name: %s\nGID: %u\nSID: %s\n\n", dom_groups.list[ind].name,
+                                                       dom_groups.list[ind].gid,
+                                                       dom_groups.list[ind].sid);
     }
 
 CleanUp:
-    free(groups);
-
+    if (err != 0) res = false;
+    free_DomainGroups(&dom_groups);
+    free(SID);
+    if (*error_code_p && res == false) *error_code_p = err;
     return res;
 }
 

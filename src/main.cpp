@@ -52,9 +52,16 @@ int main()
             free(domain_name);
         }
         else printf("Failed to get domain name: %s\n", strerror(err));
+        
+        if ( !print_domain_groups(&err))
+        {
+            printf("Some non-crtical error occured during printing current user groups:\n");
+            if (err == ENOENT)
+                printf("No domain groups found.\n");
+            else
+                perror(strerror(err));
+        }
     }
-
-    
     else if (err == 0)
     {
         printf("This UID doesn't belong to current domain, so no SID exists.\n");
@@ -65,11 +72,6 @@ int main()
         perror(strerror(err)); 
     }
 
-    if ( !print_groups(&err))
-    {
-        printf("Some non-crtical error occured during printing current user groups:\n");
-        perror(strerror(err));
-    }
 
 
     if (!dlink_close_sss_nss_idmap(&dlink_err_msg))
