@@ -42,7 +42,8 @@ int main()
         char *domain_name = NULL;
         if (get_own_domain_name_nss(&domain_name, &err))
         {
-            if (ping_domain(domain_name, true, &err))
+            // It turned out that Astra Linux doesn't give access to /nul
+            if (ping_domain(domain_name, false, &err))
             {
                 printf("Domain contoller is online!\n");
             }

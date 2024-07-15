@@ -31,7 +31,7 @@ INC = inc
 C_EXT   = .cpp
 OBJ_EXT = .o
 
-LIB_NAMES = #sss_nss_idmap #systemd
+LIB_NAMES = dl #sss_nss_idmap #systemd
 
 SOURCES  = $(wildcard $(SRC)/*$(C_EXT))
 OBJFILES = $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:$(C_EXT)=$(OBJ_EXT)))
@@ -73,6 +73,7 @@ copy_to_TEST: | $(TEST_DIR)
 $(TEST_DIR):
 	sudo mkdir -p $@
 
+# currently doesn't work on Astra Linux
 .PHONY:	codegen
 codegen:
-	@python3 srcipts/codegen.py
+	@python3 scripts/codegen.py

@@ -75,5 +75,6 @@ bool get_own_domain_sid(char **SID_p, int *error_code_p = NULL);
 //!         `false` AND err_code != 0 if some error occurs. 
 //! @attention Uses `ping` return codes, which are platform dependent. See enum `PingRetCode`.
 //!            If `ping` returns something which is not part of the enum, err_code == EPROTO.
-//! @note To suppress output to stdout, '>nul 2>nul' is used.
+//! @note To suppress output to stdout, '>nul 2>nul' is used. Seems like it doesn't work
+//!       on Astra Linux due to some permissions reasons.
 bool ping_domain(const char *domain_name, bool suppress_output, int *error_code_p = NULL);
